@@ -13,10 +13,11 @@ import random
 
 Dungon_size = (5, 4)    # Size of dungon
 
-CELLS =[]
-for y in range(0, Dungon_size[1]):
-    for x in range(0, Dungon_size[0]):
-        CELLS.append((x, y))
+CELLS =[(x,y) for y in range(Dungon_size[1]) for x in range(Dungon_size[0])]
+
+#for y in range(0, Dungon_size[1]):
+#    for x in range(0, Dungon_size[0]):
+#        CELLS.append((x, y))
 
 #CELLS = [(0,0), (1,0), (2,0), (3,0),
 #       (0,1), (1,1), (2,1), (3,1),

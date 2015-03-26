@@ -3,149 +3,174 @@
 # With improvements by Gordon Reeder
 # -------------
 # STILL to DO
-# - Any function that depends on the size of the dungon needs to reference
-#   Dungon_size  
-#   Also, set these with optional command line arguments.
+# - See about setting the Dungon_size tuple with optional command line arguments.
+# - Make it Object oriented. In progress, much work to do.
 
 import random
 
-# Define some game paramerers
+# ** Define some game paramerers
 
 Dungon_size = (5, 4)    # Size of dungon
 
-CELLS =[(x,y) for y in range(Dungon_size[1]) for x in range(Dungon_size[0])]
+# ** Define some classes.
+       
+class Thing:
+    """Thing is the base class for all the things in the dungon."""
 
-#for y in range(0, Dungon_size[1]):
-#    for x in range(0, Dungon_size[0]):
-#        CELLS.append((x, y))
+    def __init__(self, arg_here):
+        self.position = (arg_here)
+        self.state = 'active'
 
-#CELLS = [(0,0), (1,0), (2,0), (3,0),
-#       (0,1), (1,1), (2,1), (3,1),
-#      (0,2), (1,2), (2,2), (3,2),
-#     (0,3), (1,3), (2,3), (3,3)]
+    def move(self, move):
+        x, y = self.position
 
+        if move == 'LEFT':
+            x -= 1
 
-player_has = {'sword': False, 'key': False} # Things the player is carrying
+        elif move == 'RIGHT':
+            x += 1
 
-def set_locations():
-    monster = random.choice(CELLS)
-    door = random.choice(CELLS)
-    start = random.choice(CELLS)
-    weapon = random.choice(CELLS)
-    key = random.choice(CELLS)
+        elif move == 'UP':
+            y -= 1
 
-    if monster == start or start == door:
-        return set_locations()
+        elif move == 'DOWN':
+            y += 1
 
-    return monster, door, start, weapon, key
+        self.position = (x, y)
 
+    def make_inactive(self):
+        self.state = 'inactive'
+        self.position = (-1, -1)
 
-def move_player(player, move):
-    # also moves monster
-    x, y = player
+        
+class Player(Thing):
+    """player is the user controled thing. It can pick up and carry stuff."""
+   
+    def __init__(self, arg_here):
+        self.position = (arg_here)
+        self.state = 'active'
+        self.has = []    # List of stuff that the player has
 
-    if move == 'LEFT':
-        x -= 1
+    def pick_up(self, stuff):
+        self.has.append(stuff)
 
-    elif move == 'RIGHT':
-        x += 1
+    def put_down(self, stuff):
+        if stuff in self.has:
+            self.has.remove(stuff)
 
-    elif move == 'UP':
-        y -= 1
-
-    elif move == 'DOWN':
-        y += 1
-
-    return x, y
-
-
-def get_moves(player):
-    moves = ['LEFT', 'RIGHT', 'UP', 'DOWN']
-
-    if player[0] == 0:
-        moves.remove('LEFT')
-    if player[0] == Dungon_size[0] - 1:
-        moves.remove('RIGHT')
-    if player[1] == 0:
-        moves.remove('UP')
-    if player[1] == Dungon_size[1] - 1:
-        moves.remove('DOWN')
-
-    return moves
+    def does_have(self, stuff):
+        return stuff in self.has
 
 
-def get_chase_move(hunter, prey):
-    moves = ['LEFT', 'RIGHT', 'UP', 'DOWN']
+class Monster(Thing):
+    """The computer controled enemy thing. 
+        It can chase other things"""
 
-    if hunter[0] <= prey[0]:
-        moves.remove('LEFT')
+    def chase(self, prey):
+        moves = ['LEFT', 'RIGHT', 'UP', 'DOWN']
 
-    if hunter[0] >= prey[0]:
-        moves.remove('RIGHT')
+        if self.state == 'active':
 
-    if hunter[1] <= prey[1]:
-        moves.remove('UP')
+            if self.position[0] <= prey.position[0]:
+                moves.remove('LEFT')
 
-    if hunter[1] >= prey[1]:
-        moves.remove('DOWN')
+            if self.position[0] >= prey.position[0]:
+                moves.remove('RIGHT')
 
-    if len(moves) == 0:
-        moves.append('HOLD')
-    return random.choice(moves)
+            if self.position[1] <= prey.position[1]:
+                moves.remove('UP')
+
+            if self.position[1] >= prey.position[1]:
+                moves.remove('DOWN')
+
+            if len(moves) == 0:
+                moves.append('HOLD')
+
+            self.move(random.choice(moves))
+
+
+class Play_area:
+    """The playing area. 
+    Call as: Gulag = play_area((size_x, size_y))"""
+
+    def __init__(self, arg_size):
+        self.size = (arg_size)
+        self.CELLS =[(x,y) for y in range(arg_size[1]) for x in range(arg_size[0])]
+
+    def get_moves(self, player):
+        moves = ['LEFT', 'RIGHT', 'UP', 'DOWN']
+
+        if player.position[0] == 0:
+            moves.remove('LEFT')
+        if player.position[0] == self.size[0] - 1:
+            moves.remove('RIGHT')
+        if player.position[1] == 0:
+            moves.remove('UP')
+        if player.position[1] == self.size[1] - 1:
+            moves.remove('DOWN')
+        return moves
+
+    def randomize(self):
+        self.CELLS =[(x,y) for y in range(self.size[1]) for x in range(self.size[0])]
+
+    def random_location(self):
+        a_cell = random.choice(self.CELLS)
+        self.CELLS.remove(a_cell)
+        return a_cell
+
+    def get_size(self):
+        return self.size
+
 
 
 def draw_map(player, monster, size):
     x, y = size
     print(" _" * x)
     tile = '|{}'
-    last_col =[i for i in range(x-1, x * y, x)]
 
-    for idx, cell in enumerate(CELLS):
-        if idx in last_col:
-            if cell == player:
-                print(tile.format('X|'))
-            elif cell == monster:
-                print(tile.format('m|'))    
+    for iy in range(y):
+        for ix in range(x):
+            cell = (ix,iy)
+            if ix == x - 1:
+                if cell == player.position:
+                    print(tile.format('X|'))
+                elif cell == monster.position:
+                    print(tile.format('m|'))    
+                else:
+                    print(tile.format('_|'))            
             else:
-                print(tile.format('_|'))            
-        else:
-            if cell == player:
-                print(tile.format('X'), end='')
-            elif cell == monster:
-                print(tile.format('m'), end='')
-            else:
-                print(tile.format('_'), end='')   
+                if cell == player.position:
+                    print(tile.format('X'), end='')
+                elif cell == monster.position:
+                    print(tile.format('m'), end='')
+                else:
+                    print(tile.format('_'), end='')  
 
 
-def pick_up(thing):
-     player_has[thing] = True
-     return Dungon_size
+# ** Game begins here **
+#** First we will create instances of the objects and set their initial locations.
 
-
-monster, door, player, sword, key = set_locations()
+dungon = Play_area(Dungon_size)
+key = Thing(dungon.random_location())
+sword = Thing(dungon.random_location())
+door = Thing(dungon.random_location())
+monster = Monster(dungon.random_location())
+player = Player(dungon.random_location())
 
 print("""
     Welcome to the dungon!
     Find your way to the door to escape. 
     But watch out for the hungry grue! """)
 
-if player == key:
-    print("  Lucky you. The key for the door is right at your feet")
-    key = pick_up('key')
-
-if player == sword:
-    print("  Lucky you. A sword is laying right at your feet")
-    sword = pick_up('sword')
-
 while True:
-    moves = get_moves(player)
-    
-    draw_map(player, monster, Dungon_size)
-    print("You (X) are in room {}".format(player))
-    if monster < Dungon_size:
-        print("Monster (m) is in room {}".format(monster))
+    moves = dungon.get_moves(player)
+
+    draw_map(player, monster, dungon.get_size())
+    print("You (X) are in room {}".format(player.position))
+    if monster.state == 'active':
+        print("monster (m) is in {}".format(monster.position))
     print("You can move {}".format(moves))
-    print("enter 'QUIT' to Quit") 
+    print("enter 'QUIT' to Quit")
 
     move = input("> ")
     move = move.upper()
@@ -154,46 +179,46 @@ while True:
         break
 
     if move == 'CHEAT':
-        print("monster is in {}".format(monster))
-        print("sword is in {}".format(sword))
-        print("door is at {}".format(door))
-        print("key is in {}".format(key))
+        print("monster is in {}".format(monster.position))
+        print("sword is in {}".format(sword.position))
+        print("door is at {}".format(door.position))
+        print("key is in {}".format(key.position))
         continue
-
+ 
     if move in ['LEFT', 'RIGHT', 'UP', 'DOWN']:
         if move in moves:
-            player = move_player(player, move)
+            player.move(move)
 
         else:
             print("\n** Walls are hard. Stop walking into them! **")
         
-        if monster < Dungon_size:
-            chase_move = get_chase_move(monster, player)
-            monster = move_player(monster, chase_move)
+        monster.chase(player)
+
     else:
         print("\n ** What?? **")
         continue
-   
-    if player == monster:
-        if player_has['sword']:
+
+    if player.position == monster.position:
+        if player.does_have('sword'):
             print("\n**  You have slain the grue!")
-            monster = Dungon_size #Move monster out of the dungon
+            monster.make_inactive()
         else:  
-            print("\nChomp, Chomp: you just got eaten by the grue.\n")
+            print("\nChomp, Chomp: You just got eaten by the grue.\n")
             break        # You loose! Nothing else matters.
 
-    if player == key:
+    if player.position == key.position:
         print("\n** You found a key!")
-        key = pick_up('key')
+        player.pick_up('key')
+        key.make_inactive()
     
-    if player == sword:
+    if player.position == sword.position:
         print("\n** You found a sword!")
-        sword = pick_up('sword')
+        player.pick_up('sword')
+        sword.make_inactive()
 
-    if player == door:
-        if player_has['key'] == True:
+    if player.position == door.position:
+        if player.does_have('key'):
             print("\nYou found the door. You unlock it and step out to freedom.\n")
             break
         else:
             print("\nYou found the door. But it is locked. You can't get out.")
-            

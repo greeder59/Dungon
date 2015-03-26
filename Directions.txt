@@ -1,0 +1,35 @@
+These are the directions for playing the Dungon game.
+OBJECTIVE:
+Find your way out of the dungon while avoiding the hungry monster.
+You must find the key to unlock the door, then find the door.
+If you find the sword, you can optionaly kill the monster.
+
+YOU:
+Are able to move UP, DOWN, LEFT, OR RIGHT unless you are
+up against a wall of the dungon. The game will list the
+available moves. Type one of the listed moves at the prompt.
+If you try to walk through a wall, you will get an error message.
+You can also type "quit" to leave the game.
+
+MONSTER (grue):
+Will chase you. If it catches you, you lose. If you run into a wall,
+the monster will still chase you. If you type an unknown command,
+the monster will not move (there is no penalty for fumbling fingers).
+If you have a sword, you can kill the monster. Killing the monster is
+optional.
+
+SWORD:
+There is a sword placed at a random location in the dungon.
+If you find it, you can attack the monster and kill it.
+To attack the monster, just move toward it. 
+
+KEY:
+There is a key placed at a random location in the dungon.
+You must find the key or you will not be able to open the
+door and escape.
+
+DOOR:
+This is your objective. However, you will not be able to
+open the door unless you have first found the key. If you 
+find the door and don't have the key, you will be told that
+the door is locked. 

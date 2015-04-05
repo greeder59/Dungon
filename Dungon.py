@@ -1,25 +1,45 @@
 # Dungon Game.
-# by kenneth Love.
-# With improvements by Gordon Reeder
+# by kenneth Love of Treehouse.
+# With many improvements by Gordon Reeder
 # -------------
-# STILL to DO
+# POSSIBLE IMPROVEMENTS
 # - See about setting the Dungon_size tuple with optional command line arguments.
-# - Make it Object oriented. In progress, much work to do.
+# - Multiple levels, Multiple monsters (Trolls, witches, orcs, zombies, dragons, huge snakes, etc)
+# - Multiple weapons with various effectivness agains different monsters.
+# - Give monsters and players attributes of: 
+#   strength, 
+#   health, 
+#   experience.
+#   Monsters will also have attributes of: 
+#   Agression (does monster back off, hold ground, or press counter attack when attacked),
+#   Mobility (move on every turn?).
+# - Web or OS GUI interface.
+# - Need to be able to draw more than two things on the map.
 
 import random
+import sys
 
-# ** Define some game paramerers
+# ** Define some game paramerers.
+#   These are put here for user convienience.
+#   By editing them, you can change the way the game plays.
 
-Dungon_size = (5, 4)    # Size of dungon
+Dungon_size = (5, 4)    # Size of dungon. You can edit these values if you want.
 
 # ** Define some classes.
        
 class Thing:
-    """Thing is the base class for all the things in the dungon."""
+    """Thing is the base class for all the things in the dungon.
+    At a minimum, position should be set when instantiating.
+    name should also be set if it will be picked up by a player object.
+    """
 
-    def __init__(self, arg_here):
-        self.position = (arg_here)
+    def __init__(self, **kwargs):
+        self.position = (0,0)
         self.state = 'active'
+        self.name = 'thing'
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def move(self, move):
         x, y = self.position
@@ -44,22 +64,35 @@ class Thing:
 
         
 class Player(Thing):
-    """player is the user controled thing. It can pick up and carry stuff."""
+    """player is the user controled thing. It can pick up and carry stuff. And fight monsters"""
    
-    def __init__(self, arg_here):
-        self.position = (arg_here)
+    def __init__(self, **kwargs):
+        self.position = (0.0)
         self.state = 'active'
         self.has = []    # List of stuff that the player has
 
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
     def pick_up(self, stuff):
-        self.has.append(stuff)
+        print("\n** You found a {}!".format(stuff.name))
+        stuff.make_inactive()
+        self.has.append(stuff.name)
 
     def put_down(self, stuff):
-        if stuff in self.has:
-            self.has.remove(stuff)
+        if stuff.name in self.has:
+            self.has.remove(stuff.name)
 
     def does_have(self, stuff):
-        return stuff in self.has
+        return stuff.name in self.has
+
+    def fight(self, enemy, weapon):
+        if weapon.name in self.has:
+            print("\n**  You have slain the grue!")
+            enemy.make_inactive()
+        else:  
+            print("\nChomp, Chomp: You just got eaten by the grue.\n")
+            sys.exit()        # You loose! Nothing else matters.
 
 
 class Monster(Thing):
@@ -90,12 +123,19 @@ class Monster(Thing):
 
 
 class Play_area:
-    """The playing area. 
-    Call as: Gulag = play_area((size_x, size_y))"""
+    """The playing area. Set the size when instantiating.
+    Hands out unique random locations, and determines which
+    directional moves are possible for a player.
+    """
 
-    def __init__(self, arg_size):
-        self.size = (arg_size)
-        self.CELLS =[(x,y) for y in range(arg_size[1]) for x in range(arg_size[0])]
+    def __init__(self, **kwargs):
+        self.size = (1,1)
+        self.CELLS = []
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+        self.randomize()
 
     def get_moves(self, player):
         moves = ['LEFT', 'RIGHT', 'UP', 'DOWN']
@@ -118,107 +158,133 @@ class Play_area:
         self.CELLS.remove(a_cell)
         return a_cell
 
-    def get_size(self):
-        return self.size
 
+class Ui:
+    """The class which encapsulates the user interface"""
 
+    vocabulary = ['LEFT', 'RIGHT', 'UP', 'DOWN', 'QUIT', 'CHEAT', 'HELP'] #, 'ATTACK', 'L', 'R', 'U', 'D']
 
-def draw_map(player, monster, size):
-    x, y = size
-    print(" _" * x)
-    tile = '|{}'
+    def __init__(self, **kwargs):
+        
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
-    for iy in range(y):
-        for ix in range(x):
-            cell = (ix,iy)
-            if ix == x - 1:
-                if cell == player.position:
-                    print(tile.format('X|'))
-                elif cell == monster.position:
-                    print(tile.format('m|'))    
-                else:
-                    print(tile.format('_|'))            
+    def get_user_move():
+
+        while True:
+            move = input("> ").upper()
+            if move in Ui.vocabulary:
+                if move == 'QUIT':
+                    print("OK. Bye.")
+                    sys.exit()
+                elif move == 'HELP':
+                    Ui.show_help()
+                else:    
+                    return move
             else:
-                if cell == player.position:
-                    print(tile.format('X'), end='')
-                elif cell == monster.position:
-                    print(tile.format('m'), end='')
+                print('\n** What? **')
+
+    def draw_map(player, monster, size):
+        x, y = size
+        print(" _" * x)
+        tile = '|{}'
+
+        for iy in range(y):
+            for ix in range(x):
+                cell = (ix,iy)
+                if ix == x - 1:
+                    if cell == player.position:
+                        print(tile.format('X|'))
+                    elif cell == monster.position:
+                        print(tile.format('g|'))    
+                    else:
+                        print(tile.format('_|'))            
                 else:
-                    print(tile.format('_'), end='')  
+                    if cell == player.position:
+                        print(tile.format('X'), end='')
+                    elif cell == monster.position:
+                        print(tile.format('g'), end='')
+                    else:
+                        print(tile.format('_'), end='')
+
+        print("You (X) are in room {}".format(player.position))
+        if monster.state == 'active':
+            print("grue (g) is in {}".format(monster.position))
+
+    def show_help():
+        print("""   Move by typing LEFT, RIGHT, UP, or DOWN.
+        The monster will chase you. Try to avoid him.
+        There is a sword in the dungeon. If you find it,
+        you can kill the monster. Killing the monster is 
+        optional.
+        There is a key in the dungeon. You must find it or
+        you will not be able to open the door and escape.
+        """)
 
 
-# ** Game begins here **
+def game():
+    """This function contins the init code and the main loop for the game."""
+
+# Initialize game.
 #** First we will create instances of the objects and set their initial locations.
 
-dungon = Play_area(Dungon_size)
-key = Thing(dungon.random_location())
-sword = Thing(dungon.random_location())
-door = Thing(dungon.random_location())
-monster = Monster(dungon.random_location())
-player = Player(dungon.random_location())
+    dungon = Play_area(size = Dungon_size)
+    key = Thing(position = dungon.random_location(), name = 'key')
+    sword = Thing(position = dungon.random_location(), name = 'sword')
+    door = Thing(position = dungon.random_location())
+    monster = Monster(position = dungon.random_location())
+    player = Player(position = dungon.random_location())
 
-print("""
-    Welcome to the dungon!
-    Find your way to the door to escape. 
-    But watch out for the hungry grue! """)
+    print("""
+        Welcome to the dungeon!
+        Find your way to the door to escape. 
+        But watch out for the hungry grue! 
+        Type QUIT to quit the game.
+        Type HELP for additional instructions.
+        """)
 
-while True:
-    moves = dungon.get_moves(player)
+    # Then we enter the main loop. Use sys.exit() to terminate.
 
-    draw_map(player, monster, dungon.get_size())
-    print("You (X) are in room {}".format(player.position))
-    if monster.state == 'active':
-        print("monster (m) is in {}".format(monster.position))
-    print("You can move {}".format(moves))
-    print("enter 'QUIT' to Quit")
+    while True:
 
-    move = input("> ")
-    move = move.upper()
+        Ui.draw_map(player, monster, dungon.size)
 
-    if move == 'QUIT':
-        break
+        moves = dungon.get_moves(player)
+        print("You can move {}".format(moves)) 
+        move = Ui.get_user_move()
+       
+        if move == 'CHEAT':
+            print("""
+        sword is in {}.
+        door is at {}.
+        key is in {}.""".format(sword.position, door.position, key.position))
+            continue    
 
-    if move == 'CHEAT':
-        print("monster is in {}".format(monster.position))
-        print("sword is in {}".format(sword.position))
-        print("door is at {}".format(door.position))
-        print("key is in {}".format(key.position))
-        continue
- 
-    if move in ['LEFT', 'RIGHT', 'UP', 'DOWN']:
-        if move in moves:
+        elif move in moves:
             player.move(move)
-
         else:
             print("\n** Walls are hard. Stop walking into them! **")
         
         monster.chase(player)
 
-    else:
-        print("\n ** What?? **")
-        continue
+        # Now that everyone has had their chance to move, figure out what happened.
 
-    if player.position == monster.position:
-        if player.does_have('sword'):
-            print("\n**  You have slain the grue!")
-            monster.make_inactive()
-        else:  
-            print("\nChomp, Chomp: You just got eaten by the grue.\n")
-            break        # You loose! Nothing else matters.
+        if player.position == monster.position:
+            player.fight(monster, sword)
 
-    if player.position == key.position:
-        print("\n** You found a key!")
-        player.pick_up('key')
-        key.make_inactive()
-    
-    if player.position == sword.position:
-        print("\n** You found a sword!")
-        player.pick_up('sword')
-        sword.make_inactive()
+        if player.position == key.position:
+            player.pick_up(key)
+        
+        if player.position == sword.position:
+            player.pick_up(sword)
 
-    if player.position == door.position:
-        if player.does_have('key'):
-            print("\nYou found the door. You unlock it and step out to freedom.\n")
-            break
-        else:
-            print("\nYou found the door. But it is locked. You can't get out.")
+        if player.position == door.position:
+            if player.does_have(key):
+                print("\nYou found the door. You unlock it and step out to freedom.\n")
+                sys.exit()
+            else:
+                print("\nYou found the door. But it is locked. You can't get out.")
+
+
+if __name__ == "__main__":
+    game()
